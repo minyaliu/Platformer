@@ -9,10 +9,12 @@ public class PlayerMovement : MonoBehaviour
     private float horizontal;
     private float speed = 8f;
     private Vector2 movement = Vector2.zero;
-    private float jumpingPower = 18f;
+    private float jumpingPower = 12f;
     private bool isJump;
     private bool jumpRelease;
     private bool isRight = true;
+
+    private int numJumps;
 
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private Transform groundCheck;
@@ -33,9 +35,12 @@ public class PlayerMovement : MonoBehaviour
 
     void OnJump(InputValue value) 
     {
-        if (value.isPressed && IsGrounded())
+        // if (value.isPressed && IsGrounded() && numJumps < 2)
+        if (value.isPressed && numJumps < 1)
+
         {
             isJump = true;          // jumping if the jump button is pressed and the player is currently on the ground
+            numJumps++;
         }
         else if (!value.isPressed)
         {
@@ -60,6 +65,10 @@ public class PlayerMovement : MonoBehaviour
     {
         rb.linearVelocity = new Vector2(horizontal * speed, rb.linearVelocity.y);
 
+        if (IsGrounded())
+        {
+            numJumps = 0;
+        }
         if (isJump)
         {
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpingPower);     // jump height becomes the x value and the jump power

@@ -35,9 +35,7 @@ public class PlayerMovement : MonoBehaviour
 
     void OnJump(InputValue value) 
     {
-        // if (value.isPressed && IsGrounded() && numJumps < 2)
         if (value.isPressed && numJumps < 1)
-
         {
             isJump = true;          // jumping if the jump button is pressed and the player is currently on the ground
             numJumps++;

@@ -8,40 +8,68 @@ public class PlayerMovement : MonoBehaviour
 
     private float horizontal;
     private float speed = 8f;
-    private float jumpingPower = 30f;
+    private Vector2 movement = Vector2.zero;
+    private float jumpingPower = 18f;
+    private bool isJump;
+    private bool jumpRelease;
     private bool isRight = true;
 
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask groundLayer;
 
+    // private Rigidbody2D rb;
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
-    // void Start()
-    // {
-        
-    // }
+    void Start()
+    {
+        rb = GetComponent<Rigidbody2D>();
+    }
+
+    void OnMove(InputValue value)
+    {
+        movement = value.Get<Vector2>();
+    }
+
+    void OnJump(InputValue value) 
+    {
+        if (value.isPressed && IsGrounded())
+        {
+            isJump = true;          // jumping if the jump button is pressed and the player is currently on the ground
+        }
+        else if (!value.isPressed)
+        {
+            jumpRelease = true;     // jump button is released
+        }
+    }
 
     // Update is called once per frame
     void Update()
     {
-        horizontal = Input.GetAxisRaw("Horizontal");
-
-        if (Input.GetButtonDown("Jump") && IsGrounded())
-        {
-            rb.velocity = new Vector2(rb.velocity.x, jumpingPower);
-        }
-
-        if (Input.GetButtonUp("Jump") && rb.velocity.y > 0f)
-        {
-            rb.velocity = new Vector2(rb.velocity.x, rb.velocity.y * 0.5f);
-        }
-
+        // Move(movement.x, movement.y);
+        horizontal = movement.x;
         Flip();
+    }
+
+    private void Move(float x, float z)
+    {
+        rb.linearVelocity = new Vector2(x * speed, rb.linearVelocity.y);
     }
 
     private void FixedUpdate() 
     {
-        rb.velocity = new Vector2(horizontal * speed, rb.velocity.y);
+        rb.linearVelocity = new Vector2(horizontal * speed, rb.linearVelocity.y);
+
+        if (isJump)
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpingPower);     // jump height becomes the x value and the jump power
+            isJump = false;
+        }
+        if (jumpRelease && rb.linearVelocity.y > 0f)        // jump height if the button is released during the jump
+        {
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.5f);
+            jumpRelease = false;
+        }
     }
 
     private bool IsGrounded() 
@@ -53,7 +81,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (isRight && horizontal < 0f || !isRight && horizontal > 0f) 
         {
-        isRight = !isRight;
+            isRight = !isRight;
             Vector3 localScale = transform.localScale;
             localScale.x *= -1f;
             transform.localScale = localScale;

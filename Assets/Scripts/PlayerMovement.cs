@@ -13,19 +13,39 @@ public class PlayerMovement : MonoBehaviour
     private bool isJump;
     private bool jumpRelease;
     private bool isRight = true;
-
     private int numJumps;
 
     [SerializeField] private Rigidbody2D rb;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask groundLayer;
 
-    // private Rigidbody2D rb;
+    // Dashing
+
+    [SerializeField] private float dashSpeed = 20f;
+    [SerializeField] private float dashDuration = 0.2f;
+    [SerializeField] private float dashCooldown = 1f;
+
+    private bool canDash = true;
+    private bool isDashing = false;
+    private float dashTime;
+    private float dashCooldownTimer;
+
+    // double-tap dash controls
+
+    private float tapLeft = -1f;
+    private float tapRight = -1f;
+    private float doubleTap = 0.25f;
+
+    // animations
+
+    private Animator animator;
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+
+        animator = GetComponentInChildren<Animator>();
     }
 
     void OnMove(InputValue value)
@@ -37,8 +57,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if (value.isPressed && numJumps < 1)
         {
-            isJump = true;          // jumping if the jump button is pressed and the player is currently on the ground
-            numJumps++;
+            isJump = true;          // initialize the number of jumps to 0, and check if numJumps < 1. if so, it allows one more jump (a double jump)
+            numJumps++;             // increment the number of jumps
         }
         else if (!value.isPressed)
         {
@@ -52,20 +72,63 @@ public class PlayerMovement : MonoBehaviour
         // Move(movement.x, movement.y);
         horizontal = movement.x;
         Flip();
+
+        // Dashing
+        CheckDoubleTap();
     }
 
-    private void Move(float x, float z)
-    {
-        rb.linearVelocity = new Vector2(x * speed, rb.linearVelocity.y);
-    }
+    // void OnDash(InputValue value)
+    // {
+    //     if (canDash && !isDashing)
+    //     {
+    //         isDashing = true;
+    //         canDash = false;
+    //         dashTime = dashDuration;
+    //     }
+    // }
+
+
+    // private void Move(float x, float z)
+    // {
+    //     rb.linearVelocity = new Vector2(x * speed, rb.linearVelocity.y);
+    // }
 
     private void FixedUpdate() 
     {
-        rb.linearVelocity = new Vector2(horizontal * speed, rb.linearVelocity.y);
+
+        // dashing
+
+        if (isDashing)
+        {
+            dashTime -= Time.fixedDeltaTime;
+            if (dashTime <= 0f)
+            {
+                isDashing = false;
+                // rb.gravityScale = 1f;
+                dashCooldownTimer = dashCooldown;
+            }
+        }
+        else
+        {
+            dashCooldownTimer -= Time.fixedDeltaTime;
+            if (dashCooldownTimer <= 0f)
+            {
+                canDash = true;
+            }
+
+            rb.linearVelocity = new Vector2(horizontal * speed, rb.linearVelocity.y);
+        }
+
+        // regular movement (not dashing)
+
+        // if (!isDashing)
+        // {
+        //     rb.linearVelocity = new Vector2(horizontal * speed, rb.linearVelocity.y);
+        // }
 
         if (IsGrounded())
         {
-            numJumps = 0;
+            numJumps = 0;       // if the player hits the ground, reset the number of jumps
         }
         if (isJump)
         {
@@ -77,6 +140,9 @@ public class PlayerMovement : MonoBehaviour
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, rb.linearVelocity.y * 0.5f);
             jumpRelease = false;
         }
+
+        animator.SetBool("isRunning", Mathf.Abs(rb.linearVelocity.x) > 0.1f);
+        animator.SetBool("isJumping", !IsGrounded());
     }
 
     private bool IsGrounded() 
@@ -93,5 +159,39 @@ public class PlayerMovement : MonoBehaviour
             localScale.x *= -1f;
             transform.localScale = localScale;
         }
+    }
+
+    private void CheckDoubleTap()
+    {
+        if (Keyboard.current.aKey.wasPressedThisFrame)
+        {
+            Debug.Log("A key pressed");
+            if (Time.time - tapLeft < doubleTap && canDash)
+            {
+                Dash(-1);
+            }
+            tapLeft = Time.time;
+        }
+        if (Keyboard.current.dKey.wasPressedThisFrame)
+        {
+            Debug.Log("D key pressed");
+            if (Time.time - tapRight < doubleTap && canDash)
+            {
+                Dash(1);
+            }
+            tapRight = Time.time;
+        }
+    }
+
+    private void Dash(int direction)
+    {
+        isDashing = true;
+        canDash = false;
+        dashTime = dashDuration;
+
+        rb.linearVelocity = new Vector2(direction * dashSpeed, 0f);
+        // rb.gravityScale = 0f;
+
+        Debug.Log("Dash started! Direction: " + direction);
     }
 }
